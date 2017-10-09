@@ -10,7 +10,15 @@ RSpec.describe CarrierWave::Transcoder do
       expect { subject.transcode_video :blah }.to raise_error ArgumentError
     end
 
-    xit "transcodes video with the specified transcoder"
+    it "transcodes video with the specified transcoder" do
+      expect(CarrierWave::Transcoders::ElasticTranscoder).to \
+        receive(:new).with(:opts).and_call_original
+      expect_any_instance_of(CarrierWave::Transcoders::ElasticTranscoder).to \
+        receive(:transcode)
+
+      subject.transcode_video :elastic_transcoder, :opts
+    end
+
     xit "cannot transcode non-supported media"
   end
 end
