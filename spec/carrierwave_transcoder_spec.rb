@@ -18,7 +18,5 @@ RSpec.describe CarrierWave::Transcoder do
 
       subject.transcode_video :elastic_transcoder, :opts
     end
-
-    xit "cannot transcode non-supported media"
   end
 end

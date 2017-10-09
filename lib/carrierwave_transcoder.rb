@@ -7,7 +7,7 @@ module CarrierWave
     def transcode_video(transcoder, options={})
       raise ArgumentError,
         "Invalid transcoder. Supported types are "\
-        "#{VALID_TRANSCODERS.join(", ")}." \
+        "#{VALID_TRANSCODERS.map { |t| t.to_s.humanize }.join(", ")}." \
         unless valid_transcoder?(transcoder)
 
       transcode(transcoder, options)
