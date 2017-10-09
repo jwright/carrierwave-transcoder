@@ -10,10 +10,26 @@ module CarrierWave
         "#{VALID_TRANSCODERS.map { |t| t.to_s.humanize }.join(", ")}." \
         unless valid_transcoder?(transcoder)
 
-      transcode(transcoder, options)
+      transcode(transcoder, fog_options.merge(options))
     end
 
     private
+
+    def fog_options
+      # fog_provider
+      # fog_credentials -> aws_access_key_id, aws_secret_access_key, region
+      # fog_directory
+      # fog_attributes
+      # fog_public
+      # fog_authenticated_url_expiration
+      # fog_use_ssl_for_aws
+      # fog_aws_accelerate
+
+      {
+        fog_provider: fog_provider,
+        fog_credentials: fog_credentials
+      }
+    end
 
     def transcode(transcoder, options)
       klass = CarrierWave::Transcoders.const_get(transcoder.to_s.classify)
