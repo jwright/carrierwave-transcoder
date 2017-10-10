@@ -30,15 +30,6 @@ module CarrierWave
     end
 
     def fog_options
-      # fog_provider
-      # fog_credentials -> aws_access_key_id, aws_secret_access_key, region
-      # fog_directory
-      # fog_attributes
-      # fog_public
-      # fog_authenticated_url_expiration
-      # fog_use_ssl_for_aws
-      # fog_aws_accelerate
-
       {
         fog_provider: fog_provider,
         fog_credentials: fog_credentials
