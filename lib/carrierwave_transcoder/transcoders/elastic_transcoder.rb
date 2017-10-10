@@ -1,3 +1,5 @@
+require "aws-sdk-elastictranscoder"
+
 module CarrierWave
   module Transcoders
     class ElasticTranscoder
@@ -8,9 +10,19 @@ module CarrierWave
       end
 
       def transcode
+        response = client.create_job(options)
+        client.wait_until(:job_complete, { id: response.job.id }, { delay: 10 })
       end
 
       private
+
+      def client
+        @client ||= Aws::ElasticTranscoder::Client.new \
+          region: options[:fog_credentials][:region],
+          access_key_id: options[:fog_credentials][:aws_access_key_id],
+          secret_access_key: options[:fog_credentials][:aws_secret_access_key],
+          validate_params: options[:validate_params]
+      end
 
       def default_options_with(options)
         {

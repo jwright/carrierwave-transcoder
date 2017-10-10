@@ -8,6 +8,17 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
       store_dir: "uploads"
     }
   end
+  let(:fog_options) do
+    {
+      fog_provider: "fog/aws",
+      fog_credentials: {
+        provider: "AWS",
+        aws_access_key_id: "ACCESS",
+        aws_secret_access_key: "SECRET",
+        region: "us-east-1"
+      }
+    }
+  end
   let(:options) do
     {
       pipeline_id: "pipeline-id",
@@ -18,7 +29,9 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
         key: "some_smaller_file.webm",
         preset_id: "preset-id"
       }],
-      output_key_prefix: "transcoded/"
+      output_key_prefix: "transcoded/",
+      validate_params: false,
+      stub_responses: true
     }
   end
 
@@ -47,5 +60,43 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
   end
 
   describe "#transcode" do
+    let(:job_id) { "BLAH" }
+    let(:merged_options) { file_options.merge(fog_options.merge(options)) }
+
+    subject { described_class.new(merged_options) }
+
+    before do
+      Aws.config[:stub_responses] = true
+      allow_any_instance_of(Aws::ElasticTranscoder::Client).to \
+        receive(:wait_until).and_return nil
+    end
+
+    it "creates an AWS client with the specified credentials" do
+      expect(Aws::ElasticTranscoder::Client).to \
+        receive(:new).with({ region: "us-east-1",
+                             access_key_id: "ACCESS",
+                             secret_access_key: "SECRET",
+                             validate_params: false })
+        .and_call_original
+
+      subject.transcode
+    end
+
+    it "creates a job" do
+      expect_any_instance_of(Aws::ElasticTranscoder::Client).to \
+        receive(:create_job).with(merged_options).and_call_original
+
+      subject.transcode
+    end
+
+    context "with a successful response" do
+      xit "updates the file path"
+      xit "calls the succeed callback"
+    end
+
+    context "with a failure response" do
+      xit "does not update the file path"
+      xit "calls the failure callback"
+    end
   end
 end
