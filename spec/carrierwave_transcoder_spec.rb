@@ -5,11 +5,25 @@ RSpec.describe CarrierWave::Transcoder do
     include CarrierWave::Transcoder
   end
 
+  let(:credentials) do
+    {
+      provider: "aws",
+      aws_access_key_id: "ACCESS",
+      aws_secret_access_key: "SECRET",
+      region: "us-east-1"
+    }
+  end
   let(:file) { fixture_file("user.mp4", "video/mp4") }
 
   subject { DummyVideoUploader.new }
 
   describe "#transcode_video" do
+    before do
+      Aws.config[:stub_responses] = true
+      allow_any_instance_of(Aws::ElasticTranscoder::Client).to \
+        receive(:wait_until).and_return nil
+    end
+
     after { subject.remove! }
 
     it "requires a valid transcoder" do
@@ -35,9 +49,6 @@ RSpec.describe CarrierWave::Transcoder do
     end
 
     it "passes in the fog settings to the transcoder" do
-      credentials = { provider: "aws",
-                      aws_access_key_id: "ACCESS",
-                      aws_secret_access_key: "SECRET" }
       fog_provider = "fog/aws"
       allow(subject).to receive(:fog_credentials).and_return(credentials)
       allow(subject).to receive(:fog_provider).and_return(fog_provider)
@@ -53,6 +64,8 @@ RSpec.describe CarrierWave::Transcoder do
     end
 
     it "passes in the file settings to the transcoder" do
+      allow(subject).to receive(:fog_credentials).and_return(credentials)
+
       subject.transcode_video :elastic_transcoder
 
       expect(CarrierWave::Transcoders::ElasticTranscoder).to \
