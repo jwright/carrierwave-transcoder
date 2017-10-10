@@ -19,6 +19,16 @@ module CarrierWave
 
     private
 
+    def file_options
+      {
+        basename: sanitized_file.basename,
+        content_type: sanitized_file.content_type,
+        extension: sanitized_file.extension,
+        filename: sanitized_file.filename,
+        store_dir: store_dir
+      }
+    end
+
     def fog_options
       # fog_provider
       # fog_credentials -> aws_access_key_id, aws_secret_access_key, region
@@ -39,7 +49,7 @@ module CarrierWave
       transcoder = self.options.delete(:transcoder)
       unless transcoder.nil?
         klass = CarrierWave::Transcoders.const_get(transcoder.to_s.classify)
-        klass.new(fog_options.merge(options)).transcode
+        klass.new(fog_options.merge(file_options.merge(options))).transcode
       end
     end
 

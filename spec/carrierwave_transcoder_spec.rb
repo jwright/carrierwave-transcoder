@@ -45,8 +45,22 @@ RSpec.describe CarrierWave::Transcoder do
       subject.transcode_video :elastic_transcoder
 
       expect(CarrierWave::Transcoders::ElasticTranscoder).to \
-        receive(:new).with({ fog_provider: fog_provider,
-                             fog_credentials: credentials })
+        receive(:new).with(hash_including({ fog_provider: fog_provider,
+                                            fog_credentials: credentials }))
+        .and_call_original
+
+      subject.store! file
+    end
+
+    it "passes in the file settings to the transcoder" do
+      subject.transcode_video :elastic_transcoder
+
+      expect(CarrierWave::Transcoders::ElasticTranscoder).to \
+        receive(:new).with(hash_including({ basename: "user",
+                                            content_type: "video/mp4",
+                                            extension: "mp4",
+                                            filename: "user.mp4",
+                                            store_dir: "uploads" }))
         .and_call_original
 
       subject.store! file
