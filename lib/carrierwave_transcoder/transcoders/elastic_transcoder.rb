@@ -3,15 +3,26 @@ require "aws-sdk-elastictranscoder"
 module CarrierWave
   module Transcoders
     class ElasticTranscoder
+      attr_accessor :callback
       attr_reader :options
 
-      def initialize(options)
+      def initialize(options, callback=nil)
         @options = default_options_with(options.symbolize_keys)
+        @callback = callback
       end
 
       def transcode
         response = client.create_job(options)
-        client.wait_until(:job_complete, { id: response.job.id }, { delay: 10 })
+        begin
+          response = client.wait_until(:job_complete,
+                                       { id: response.job.id },
+                                       { delay: 10 })
+
+          callback.call(response) unless callback.nil?
+
+        rescue Aws::Waiters::Errors::WaiterFailed => e
+          # TODO: Call the error callback
+        end
       end
 
       private

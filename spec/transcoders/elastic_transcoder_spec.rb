@@ -63,7 +63,7 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
     let(:job_id) { "BLAH" }
     let(:merged_options) { file_options.merge(fog_options.merge(options)) }
 
-    subject { described_class.new(merged_options) }
+    subject { described_class.new(merged_options, @callback) }
 
     before do
       Aws.config[:stub_responses] = true
@@ -91,7 +91,14 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
 
     context "with a successful response" do
       xit "updates the file path"
-      xit "calls the succeed callback"
+
+      it "calls the succeed callback" do
+        @callback = Proc.new { }
+
+        expect(@callback).to receive(:call)
+
+        subject.transcode
+      end
     end
 
     context "with a failure response" do
