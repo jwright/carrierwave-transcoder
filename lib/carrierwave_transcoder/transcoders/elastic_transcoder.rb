@@ -3,12 +3,13 @@ require "aws-sdk-elastictranscoder"
 module CarrierWave
   module Transcoders
     class ElasticTranscoder
-      attr_accessor :callback
+      attr_accessor :callback, :errback
       attr_reader :options
 
-      def initialize(options, callback=nil)
+      def initialize(options, callback=nil, errback=nil)
         @options = default_options_with(options.symbolize_keys)
         @callback = callback
+        @errback = errback
       end
 
       def transcode
@@ -19,9 +20,8 @@ module CarrierWave
                                        { delay: 10 })
 
           callback.call(response) unless callback.nil?
-
         rescue Aws::Waiters::Errors::WaiterFailed => e
-          # TODO: Call the error callback
+          errback.call(e) unless errback.nil?
         end
       end
 

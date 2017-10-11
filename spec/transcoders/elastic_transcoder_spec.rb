@@ -62,13 +62,14 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
   describe "#transcode" do
     let(:job_id) { "BLAH" }
     let(:merged_options) { file_options.merge(fog_options.merge(options)) }
+    let(:response) { {} }
 
-    subject { described_class.new(merged_options, @callback) }
+    subject { described_class.new(merged_options, @callback, @errback) }
 
     before do
       Aws.config[:stub_responses] = true
       allow_any_instance_of(Aws::ElasticTranscoder::Client).to \
-        receive(:wait_until).and_return nil
+        receive(:wait_until).and_return response
     end
 
     it "creates an AWS client with the specified credentials" do
@@ -93,17 +94,33 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
       xit "updates the file path"
 
       it "calls the succeed callback" do
-        @callback = Proc.new { }
+        @callback = Proc.new { |response| @response = response }
 
-        expect(@callback).to receive(:call)
+        expect(@callback).to receive(:call).and_call_original
 
         subject.transcode
+
+        expect(@response).to eq response
       end
     end
 
     context "with a failure response" do
+      before do
+        allow_any_instance_of(Aws::ElasticTranscoder::Client).to \
+          receive(:wait_until).and_raise Aws::Waiters::Errors::WaiterFailed
+      end
+
       xit "does not update the file path"
-      xit "calls the failure callback"
+
+      it "calls the failure callback" do
+        @errback = Proc.new { |e| @error = e }
+
+        expect(@errback).to receive(:call).and_call_original
+
+        subject.transcode
+
+        expect(@error).to be_instance_of Aws::Waiters::Errors::WaiterFailed
+      end
     end
   end
 end
