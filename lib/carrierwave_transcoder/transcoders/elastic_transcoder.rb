@@ -13,14 +13,22 @@ module CarrierWave
       end
 
       def transcode
-        response = client.create_job(options)
         begin
-          response = client.wait_until(:job_complete,
-                                       { id: response.job.id },
-                                       { delay: 10 })
+          response = client.create_job(options)
+          thread = Thread.new do
+            begin
+              response = client.wait_until(:job_complete,
+                                           { id: response.job.id },
+                                           { delay: 10 })
 
-          callback.call(response) unless callback.nil?
-        rescue Aws::Waiters::Errors::WaiterFailed => e
+              callback.call(response) unless callback.nil?
+            rescue Aws::Waiters::Errors::WaiterFailed => e
+              errback.call(e) unless errback.nil?
+            end
+          end
+          thread.abort_on_exception = true
+          thread
+        rescue Exception => e
           errback.call(e) unless errback.nil?
         end
       end

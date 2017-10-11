@@ -98,7 +98,7 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
 
         expect(@callback).to receive(:call).and_call_original
 
-        subject.transcode
+        subject.transcode.join
 
         expect(@response).to eq response
       end
@@ -117,7 +117,7 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
 
         expect(@errback).to receive(:call).and_call_original
 
-        subject.transcode
+        subject.transcode.join
 
         expect(@error).to be_instance_of Aws::Waiters::Errors::WaiterFailed
       end
