@@ -4,9 +4,10 @@ module CarrierWave
   module Transcoders
     class ElasticTranscoder
       attr_accessor :callback, :errback
-      attr_reader :options
+      attr_reader :options, :uploader
 
-      def initialize(options, callback=nil, errback=nil)
+      def initialize(uploader, options, callback=nil, errback=nil)
+        @uploader = uploader
         @options = default_options_with(options.symbolize_keys)
         @callback = callback
         @errback = errback
@@ -20,8 +21,7 @@ module CarrierWave
               response = client.wait_until(:job_complete,
                                            { id: response.job.id },
                                            { delay: 10 })
-
-              callback.call(response) unless callback.nil?
+              store! response
             rescue Aws::Waiters::Errors::WaiterFailed => e
               errback.call(e) unless errback.nil?
             end
@@ -37,9 +37,9 @@ module CarrierWave
 
       def client
         @client ||= Aws::ElasticTranscoder::Client.new \
-          region: options[:fog_credentials][:region],
-          access_key_id: options[:fog_credentials][:aws_access_key_id],
-          secret_access_key: options[:fog_credentials][:aws_secret_access_key],
+          region: uploader.fog_credentials[:region],
+          access_key_id: uploader.fog_credentials[:aws_access_key_id],
+          secret_access_key: uploader.fog_credentials[:aws_secret_access_key],
           validate_params: options[:validate_params]
       end
 
@@ -58,6 +58,10 @@ module CarrierWave
             new_value
           end
         end
+      end
+
+      def store!(response)
+        callback.call(response) unless callback.nil?
       end
     end
   end

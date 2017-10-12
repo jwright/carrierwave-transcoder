@@ -36,7 +36,7 @@ RSpec.describe CarrierWave::Transcoder do
                               [:opts, :options]
 
       expect(CarrierWave::Transcoders::ElasticTranscoder).to \
-        receive(:new).with(Hash).and_call_original
+        receive(:new).with(subject, Hash).and_call_original
       expect_any_instance_of(CarrierWave::Transcoders::ElasticTranscoder).to \
         receive(:transcode)
 
@@ -51,32 +51,17 @@ RSpec.describe CarrierWave::Transcoder do
                                       opts: :options })
     end
 
-    it "passes in the fog settings to the transcoder" do
-      fog_provider = "fog/aws"
-      allow(subject).to receive(:fog_credentials).and_return(credentials)
-      allow(subject).to receive(:fog_provider).and_return(fog_provider)
-
-      subject.transcode_video [:transcoder, :elastic_transcoder]
-
-      expect(CarrierWave::Transcoders::ElasticTranscoder).to \
-        receive(:new).with(hash_including({ fog_provider: fog_provider,
-                                            fog_credentials: credentials }))
-        .and_call_original
-
-      subject.store! file
-    end
-
     it "passes in the file settings to the transcoder" do
       allow(subject).to receive(:fog_credentials).and_return(credentials)
 
       subject.transcode_video [:transcoder, :elastic_transcoder]
 
       expect(CarrierWave::Transcoders::ElasticTranscoder).to \
-        receive(:new).with(hash_including({ basename: "user",
-                                            content_type: "video/mp4",
-                                            extension: "mp4",
-                                            filename: "user.mp4",
-                                            store_dir: "uploads" }))
+        receive(:new).with(subject, hash_including({ basename: "user",
+                                                     content_type: "video/mp4",
+                                                     extension: "mp4",
+                                                     filename: "user.mp4",
+                                                     store_dir: "uploads" }))
         .and_call_original
 
       subject.store! file

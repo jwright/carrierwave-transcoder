@@ -32,18 +32,11 @@ module CarrierWave
       }
     end
 
-    def fog_options
-      {
-        fog_provider: fog_provider,
-        fog_credentials: fog_credentials
-      }
-    end
-
     def transcode(_file)
       transcoder = self.options.delete(:transcoder)
       unless transcoder.nil?
         klass = CarrierWave::Transcoders.const_get(transcoder.to_s.classify)
-        klass.new(fog_options.merge(file_options.merge(options))).transcode
+        klass.new(self, file_options.merge(options)).transcode
       end
     end
 
