@@ -27,12 +27,13 @@ RSpec.describe CarrierWave::Transcoder do
     after { subject.remove! }
 
     it "requires a valid transcoder" do
-      expect { subject.transcode_video transcoder: :blah }.to \
+      expect { subject.transcode_video [:transcoder, :blah] }.to \
         raise_error ArgumentError
     end
 
     it "transcodes video with the specified transcoder after it is stored" do
-      subject.transcode_video transcoder: :elastic_transcoder, opts: :options
+      subject.transcode_video [:transcoder, :elastic_transcoder],
+                              [:opts, :options]
 
       expect(CarrierWave::Transcoders::ElasticTranscoder).to \
         receive(:new).with(Hash).and_call_original
@@ -43,7 +44,8 @@ RSpec.describe CarrierWave::Transcoder do
     end
 
     it "sets the options on the transcoder" do
-      subject.transcode_video transcoder: :elastic_transcoder, opts: :options
+      subject.transcode_video [:transcoder, :elastic_transcoder],
+                              [:opts, :options]
 
       expect(subject.options).to eq({ transcoder: :elastic_transcoder,
                                       opts: :options })
@@ -54,7 +56,7 @@ RSpec.describe CarrierWave::Transcoder do
       allow(subject).to receive(:fog_credentials).and_return(credentials)
       allow(subject).to receive(:fog_provider).and_return(fog_provider)
 
-      subject.transcode_video transcoder: :elastic_transcoder
+      subject.transcode_video [:transcoder, :elastic_transcoder]
 
       expect(CarrierWave::Transcoders::ElasticTranscoder).to \
         receive(:new).with(hash_including({ fog_provider: fog_provider,
@@ -67,7 +69,7 @@ RSpec.describe CarrierWave::Transcoder do
     it "passes in the file settings to the transcoder" do
       allow(subject).to receive(:fog_credentials).and_return(credentials)
 
-      subject.transcode_video transcoder: :elastic_transcoder
+      subject.transcode_video [:transcoder, :elastic_transcoder]
 
       expect(CarrierWave::Transcoders::ElasticTranscoder).to \
         receive(:new).with(hash_including({ basename: "user",
@@ -81,7 +83,7 @@ RSpec.describe CarrierWave::Transcoder do
     end
 
     it "transcodes videos after it saves it to AWS" do
-      expect { subject.transcode_video transcoder: :elastic_transcoder }
+      expect { subject.transcode_video [:transcoder, :elastic_transcoder] }
         .to change { subject._after_callbacks[:store].count }.by(1)
 
       expect(subject._after_callbacks[:store]).to include :transcode
