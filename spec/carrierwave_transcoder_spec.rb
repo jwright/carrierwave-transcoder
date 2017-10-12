@@ -19,9 +19,8 @@ RSpec.describe CarrierWave::Transcoder do
 
   describe "#transcode_video" do
     before do
-      Aws.config[:stub_responses] = true
-      allow_any_instance_of(Aws::ElasticTranscoder::Client).to \
-        receive(:wait_until).and_return nil
+      allow_any_instance_of(CarrierWave::Transcoders::ElasticTranscoder).to \
+        receive(:transcode)
     end
 
     after { subject.remove! }
@@ -63,6 +62,15 @@ RSpec.describe CarrierWave::Transcoder do
                                                      filename: "user.mp4",
                                                      store_dir: "uploads" }))
         .and_call_original
+
+      subject.store! file
+    end
+
+    it "validates the options with the transcoder" do
+      subject.transcode_video [:transcoder, :elastic_transcoder]
+
+      expect_any_instance_of(CarrierWave::Transcoders::ElasticTranscoder).to \
+        receive(:validate!).at_least(:once)
 
       subject.store! file
     end

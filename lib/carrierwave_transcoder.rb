@@ -8,14 +8,15 @@ module CarrierWave
 
     def transcode_video(*args)
       options = args.to_h
-      transcoder = options.fetch(:transcoder)
+      transcoder_type = options.fetch(:transcoder)
 
       raise ArgumentError,
         "Invalid transcoder. Supported types are "\
         "#{VALID_TRANSCODERS.map { |t| t.to_s.humanize }.join(", ")}." \
-        unless valid_transcoder?(transcoder)
+        unless valid_transcoder?(transcoder_type)
 
       self.options = options
+
       # We should not transcode until after the file is already on AWS
       self.class.after :store, :transcode
     end
@@ -33,11 +34,19 @@ module CarrierWave
     end
 
     def transcode(_file)
-      transcoder = self.options.delete(:transcoder)
+      transcoder.validate!
+      transcoder.transcode
+    end
+
+    def transcoder_class
+      transcoder = options.delete(:transcoder)
       unless transcoder.nil?
         klass = CarrierWave::Transcoders.const_get(transcoder.to_s.classify)
-        klass.new(self, file_options.merge(options)).transcode
       end
+    end
+
+    def transcoder
+      @transcoder ||= transcoder_class.new(self, file_options.merge(options))
     end
 
     def valid_transcoder?(transcoder)

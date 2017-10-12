@@ -33,6 +33,9 @@ module CarrierWave
         end
       end
 
+      def validate!
+      end
+
       private
 
       def client
