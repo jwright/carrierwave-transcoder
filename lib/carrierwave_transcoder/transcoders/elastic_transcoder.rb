@@ -3,6 +3,8 @@ require "aws-sdk-elastictranscoder"
 module CarrierWave
   module Transcoders
     class ElasticTranscoder
+      include CarrierWave::Utilities::Uri
+
       attr_accessor :callback, :errback
       attr_reader :options, :uploader
 
@@ -73,6 +75,11 @@ module CarrierWave
       end
 
       def store!(response)
+        filename = encode_path(response.job.output.key)
+
+        column = uploader.mounted_as
+        uploader.model.update_column column, filename
+
         callback.call(response) unless callback.nil?
       end
     end

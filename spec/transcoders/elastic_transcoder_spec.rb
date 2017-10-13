@@ -18,6 +18,7 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
   end
   let(:fog_directory) { "my-directory" }
   let(:merged_options) { file_options.merge(options) }
+  let(:model) { double(:model, update_column: true) }
   let(:options) do
     {
       pipeline_id: pipeline_id,
@@ -37,6 +38,8 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
   let(:uploader) do
     double(:uploader, fog_credentials: fog_credentials,
                       fog_directory: fog_directory,
+                      model: model,
+                      mounted_as: :media,
                       store_dir: store_dir)
   end
 
@@ -77,7 +80,18 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
 
   describe "#transcode" do
     let(:job_id) { "BLAH" }
-    let(:response) { {} }
+    let(:response) do
+      {
+        job: {
+          output: {
+            key: "user.webm"
+          }
+        }
+      }
+    end
+    let(:response_struct) do
+      JSON.parse(response.to_json, object_class: OpenStruct)
+    end
 
     subject do
       described_class.new(uploader, merged_options, @callback, @errback)
@@ -86,7 +100,7 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
     before do
       Aws.config[:stub_responses] = true
       allow_any_instance_of(Aws::ElasticTranscoder::Client).to \
-        receive(:wait_until).and_return response
+        receive(:wait_until).and_return response_struct
     end
 
     it "creates an AWS client with the specified credentials" do
@@ -109,7 +123,11 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
     end
 
     context "with a successful response" do
-      xit "updates the file path"
+      it "updates the file path" do
+        expect(model).to receive(:update_column).with(:media, "user.webm")
+
+        subject.transcode.join
+      end
 
       it "calls the succeed callback" do
         @callback = Proc.new { |response| @response = response }
@@ -118,7 +136,7 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
 
         subject.transcode.join
 
-        expect(@response).to eq response
+        expect(@response).to eq response_struct
       end
     end
 
@@ -128,7 +146,11 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
           receive(:wait_until).and_raise Aws::Waiters::Errors::WaiterFailed
       end
 
-      xit "does not update the file path"
+      it "does not update the file path" do
+        expect(model).to_not receive(:update_column)
+
+        subject.transcode.join
+      end
 
       it "calls the failure callback" do
         @errback = Proc.new { |e| @error = e }
