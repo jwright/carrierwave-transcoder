@@ -54,6 +54,8 @@ module CarrierWave
       end
 
       def default_options_with(options)
+        store_dir = uploader.store_dir || ""
+        store_dir += "/" unless store_dir.end_with?("/")
         {
           inputs: [{
             key: "#{options[:store_dir]}/#{options[:filename]}"
@@ -67,7 +69,7 @@ module CarrierWave
           else
             new_value
           end
-        end
+        end.merge(output_key_prefix: store_dir)
       end
 
       def store!(response)

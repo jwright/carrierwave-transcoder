@@ -5,7 +5,7 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
       content_type: "video/mp4",
       extension: "mp4",
       filename: "user.mp4",
-      store_dir: "uploads"
+      store_dir: store_dir
     }
   end
   let(:fog_credentials) do
@@ -28,15 +28,16 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
         key: "some_smaller_file.webm",
         preset_id: "preset-id"
       }],
-      output_key_prefix: "transcoded/",
       validate_params: false,
       stub_responses: true
     }
   end
   let(:pipeline_id) { "pipeline-id" }
+  let(:store_dir) { "uploads" }
   let(:uploader) do
     double(:uploader, fog_credentials: fog_credentials,
-                      fog_directory: fog_directory)
+                      fog_directory: fog_directory,
+                      store_dir: store_dir)
   end
 
   describe "#initialize" do
@@ -45,7 +46,8 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
     end
 
     it "initializes with some options" do
-      expect(described_class.new(uploader, options).options).to eq options
+      expect(described_class.new(uploader, options).options).to \
+        eq options.merge(output_key_prefix: "#{store_dir}/")
     end
 
     it "defaults the inputs key with the input file" do
@@ -64,6 +66,12 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
 
       expect(subject.options[:outputs][0][:key]).to eq "user.webm"
       expect(subject.options[:outputs][0][:preset_id]).to eq "preset-id"
+    end
+
+    it "overwrites the output key prefix with the store directory" do
+      subject = described_class.new(uploader, file_options.merge(options))
+
+      expect(subject.options[:output_key_prefix]).to eq "#{store_dir}/"
     end
   end
 
@@ -94,7 +102,8 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
 
     it "creates a job" do
       expect_any_instance_of(Aws::ElasticTranscoder::Client).to \
-        receive(:create_job).with(merged_options).and_call_original
+        receive(:create_job).with(hash_including(merged_options))
+          .and_call_original
 
       subject.transcode
     end
