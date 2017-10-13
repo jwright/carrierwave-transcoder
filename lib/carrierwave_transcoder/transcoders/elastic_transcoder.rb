@@ -34,6 +34,13 @@ module CarrierWave
       end
 
       def validate!
+        response = client.read_pipeline(id: options[:pipeline_id])
+        bucket = response.pipeline.output_bucket ||
+          response.pipeline.content_config.bucket
+        raise RuntimeError,
+              "Output setting in pipeline must match fog directory." \
+              unless bucket == uploader.fog_directory
+        true
       end
 
       private

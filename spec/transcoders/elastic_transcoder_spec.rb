@@ -16,9 +16,11 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
       region: "us-east-1"
     }
   end
+  let(:fog_directory) { "my-directory" }
+  let(:merged_options) { file_options.merge(options) }
   let(:options) do
     {
-      pipeline_id: "pipeline-id",
+      pipeline_id: pipeline_id,
       inputs: [{
         key: "uploads/some_file.mp4"
       }],
@@ -31,7 +33,11 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
       stub_responses: true
     }
   end
-  let(:uploader) { double(:uploader, fog_credentials: fog_credentials) }
+  let(:pipeline_id) { "pipeline-id" }
+  let(:uploader) do
+    double(:uploader, fog_credentials: fog_credentials,
+                      fog_directory: fog_directory)
+  end
 
   describe "#initialize" do
     it "initializes with the uploader" do
@@ -63,7 +69,6 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
 
   describe "#transcode" do
     let(:job_id) { "BLAH" }
-    let(:merged_options) { file_options.merge(options) }
     let(:response) { {} }
 
     subject do
@@ -124,6 +129,54 @@ RSpec.describe CarrierWave::Transcoders::ElasticTranscoder do
         subject.transcode.join
 
         expect(@error).to be_instance_of Aws::Waiters::Errors::WaiterFailed
+      end
+    end
+  end
+
+  describe "#validate!" do
+    let(:response) do
+      {
+        pipeline: {
+          id: pipeline_id,
+          name: "transcoder",
+          output_bucket: nil,
+          content_config: {
+            bucket: nil
+          }
+        }
+      }
+    end
+
+    subject { described_class.new(uploader, merged_options) }
+
+    before do
+      allow_any_instance_of(Aws::ElasticTranscoder::Client).to \
+        receive(:read_pipeline)
+          .with(id: pipeline_id)
+          .and_return response_struct
+    end
+
+    context "when the output pipeline does not match the fog directory" do
+      let(:response_struct) do
+        response[:pipeline][:content_config].merge!(bucket: "blah")
+        JSON.parse(response.to_json, object_class: OpenStruct)
+      end
+
+      it "raises an error" do
+        expect { subject.validate! }.to \
+          raise_error RuntimeError,
+            "Output setting in pipeline must match fog directory."
+      end
+    end
+
+    context "when the output pipeline does match the fog directory" do
+      let(:response_struct) do
+        response[:pipeline][:content_config].merge!(bucket: fog_directory)
+        JSON.parse(response.to_json, object_class: OpenStruct)
+      end
+
+      it "returns true" do
+        expect(subject.validate!).to be_truthy
       end
     end
   end

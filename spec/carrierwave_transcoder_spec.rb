@@ -20,7 +20,7 @@ RSpec.describe CarrierWave::Transcoder do
   describe "#transcode_video" do
     before do
       allow_any_instance_of(CarrierWave::Transcoders::ElasticTranscoder).to \
-        receive(:transcode)
+        receive_messages(transcode: nil, validate!: true)
     end
 
     after { subject.remove! }
