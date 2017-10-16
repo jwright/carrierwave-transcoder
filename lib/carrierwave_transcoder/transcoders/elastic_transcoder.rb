@@ -1,4 +1,6 @@
 require "aws-sdk-elastictranscoder"
+require "active_record"
+require "carrierwave/utilities/uri"
 
 module CarrierWave
   module Transcoders
@@ -18,7 +20,7 @@ module CarrierWave
       def transcode
         begin
           response = client.create_job(options)
-          thread = Thread.new do
+          Thread.new do
             begin
               response = client.wait_until(:job_complete,
                                            { id: response.job.id },
@@ -28,8 +30,6 @@ module CarrierWave
               errback.call(e) unless errback.nil?
             end
           end
-          thread.abort_on_exception = true
-          thread
         rescue Exception => e
           errback.call(e) unless errback.nil?
         end
@@ -76,11 +76,14 @@ module CarrierWave
 
       def store!(response)
         filename = encode_path(response.job.output.key)
-
         column = uploader.mounted_as
-        uploader.model.update_column column, filename
-
-        callback.call(response) unless callback.nil?
+        unless uploader.model.update_column column, filename
+          error = ::ActiveRecord::RecordNotSaved
+            .new("Failed to update #{column}", uploader.model)
+          errback.call(error) unless errback.nil?
+        else
+          callback.call(response) unless callback.nil?
+        end
       end
     end
   end
