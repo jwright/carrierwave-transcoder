@@ -2,9 +2,15 @@ require_relative "carrierwave_transcoder/transcoders"
 
 module CarrierWave
   module Transcoder
+    extend ActiveSupport::Concern
+
     VALID_TRANSCODERS = [:elastic_transcoder]
 
     attr_accessor :options
+
+    included do
+      after :store, :transcode
+    end
 
     def transcode_video(*args)
       options = args.to_h
@@ -16,9 +22,6 @@ module CarrierWave
         unless valid_transcoder?(transcoder_type)
 
       self.options = options
-
-      # We should not transcode until after the file is already on AWS
-      self.class.after :store, :transcode
     end
 
     private

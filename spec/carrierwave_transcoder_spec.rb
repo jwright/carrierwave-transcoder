@@ -76,9 +76,6 @@ RSpec.describe CarrierWave::Transcoder do
     end
 
     it "transcodes videos after it saves it to AWS" do
-      expect { subject.transcode_video [:transcoder, :elastic_transcoder] }
-        .to change { subject._after_callbacks[:store].count }.by(1)
-
       expect(subject._after_callbacks[:store]).to include :transcode
     end
   end
